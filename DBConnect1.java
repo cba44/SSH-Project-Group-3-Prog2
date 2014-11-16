@@ -1,5 +1,8 @@
 //Program 2
 
+import java.io.BufferedWriter;
+import java.io.File;
+import java.io.FileWriter;
 import java.sql.*;
 
 public class DBConnect1 {
@@ -8,6 +11,11 @@ public class DBConnect1 {
     private Statement st;
     private ResultSet rs;
     private String query;
+    private int count = 0;
+    
+    private File file = new File("/home/chiran/Desktop/mylog.log");
+    private FileWriter writer;
+    private BufferedWriter bwriter;
     
     private final String pw = "mysql";
     
@@ -17,8 +25,47 @@ public class DBConnect1 {
             
             Class.forName("com.mysql.jdbc.Driver");
             
-            con = DriverManager.getConnection("jdbc:mysql://localhost:3306/sshblock","root",pw);
+            con = DriverManager.getConnection("jdbc:mysql://localhost:3306","root",pw);
             st = con.createStatement();
+            
+            query = "SHOW DATABASES LIKE 'sshblock'";
+            rs = st.executeQuery(query);
+            
+            while (rs.next()){
+            
+                count++;
+            
+            }
+            
+            if (count == 1){
+            
+                con = DriverManager.getConnection("jdbc:mysql://localhost:3306/sshblock","root",pw);
+                st = con.createStatement();
+                
+            }else{
+                
+                query = "CREATE DATABASE IF NOT EXISTS sshblock";     //Creating DB if doesn't exist      
+                st.executeUpdate(query);
+
+                query = "USE sshblock";
+                st.executeUpdate(query);
+
+                //Creating table if doesn't exist
+
+                query = "CREATE TABLE IF NOT EXISTS blockedIP(\n" +
+                        "    IPAddress VARCHAR (15) PRIMARY KEY,\n" +
+                        "    BlockedDate DATE NOT NULL,\n" +
+                        "    BlockedTime TIME NOT NULL,\n" +
+                        "    ReleaseDate DATE NOT NULL,\n" +
+                        "    ReleaseTime TIME NOT NULL\n" +
+                        ")";
+
+                st.executeUpdate(query);
+
+                query = "SET global max_connections = 100000";            
+                st.executeUpdate(query);
+                
+            }
             
         }catch(Exception ex){
             
@@ -84,7 +131,14 @@ public class DBConnect1 {
                java.sql.Time time = getCurrentJavaSqlTime();       //System.out.println(time);
                java.sql.Date date = getCurrentJavaSqlDate();       //System.out.println(date);
                
-               System.out.println(date + "\t" + time + "\tiptables -D INPUT -s " + IPAddress + " -j DROP");
+               String myStr = date + "\t" + time + "\tiptables -D INPUT -s " + IPAddress + " -j DROP";
+               
+               System.out.println(myStr);
+               
+               writer = new FileWriter(file.getAbsolutePath(),true);
+               bwriter = new BufferedWriter(writer);
+               bwriter.write(myStr+"\n");
+               bwriter.close();
                
                query = "DELETE FROM blockedIP WHERE IPAddress = ?";
                
@@ -105,3 +159,4 @@ public class DBConnect1 {
     }
     
 }
+
